@@ -1,33 +1,107 @@
+use std::fmt::Display;
+
+use crate::token::Token;
+
 pub struct Program {
     pub statements: Vec<Statement>,
 }
 
+impl Display for Program {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for stmt in &self.statements {
+            match write!(f, "{}", stmt.to_string()) {
+                Err(err) => err,
+                Ok(()) => continue,
+            };
+        }
+        Ok(())
+    }
+}
+
 pub enum Statement {
-    LetStatement { name: Identifier, value: Expression },
-    ReturnStatement { value: Expression },
+    LetStatement(LetStatement),
+    ReturnStatement(ReturnStatement),
+    ExpressionStatement(ExpressionStatement),
 }
 
 impl Statement {
     pub fn token_literal(&self) -> String {
         match self {
-            Statement::LetStatement { name: _, value: _ } => {
-                format!("let")
-            }
-            Statement::ReturnStatement { value: _ } => format!("return"),
+            Statement::LetStatement(ls) => ls.token.to_literal(),
+            Statement::ReturnStatement(rs) => rs.token.to_literal(),
+            Statement::ExpressionStatement(es) => es.token.to_literal(),
         }
     }
 
-    pub fn get_value(&self) -> Expression {
+    pub fn to_string(&self) -> String {
         match self {
-            Statement::LetStatement { name: _, value } => value.clone(),
-            Statement::ReturnStatement { value } => value.clone(),
+            Statement::LetStatement(ls) => ls.to_string(),
+            Statement::ReturnStatement(rs) => rs.to_string(),
+            Statement::ExpressionStatement(es) => es.to_string(),
         }
     }
+}
 
-    pub fn get_name(&self) -> Option<Identifier> {
+pub struct LetStatement {
+    pub token: Token,
+    pub name: Identifier,
+    pub value: Option<Expression>,
+}
+
+impl Display for LetStatement {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let val = match &self.value {
+            Some(item) => item.to_string(),
+            None => String::from(""),
+        };
+        write!(
+            f,
+            "{} {} = {};",
+            self.token.to_literal(),
+            self.name.to_string(),
+            val
+        )
+    }
+}
+
+pub struct ReturnStatement {
+    pub token: Token,
+    pub return_value: Option<Expression>,
+}
+
+impl Display for ReturnStatement {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{} {};",
+            self.token.to_literal(),
+            self.return_value.clone().unwrap().to_string(),
+        )
+    }
+}
+
+pub struct ExpressionStatement {
+    pub token: Token,
+    pub value: Expression,
+}
+
+impl Display for ExpressionStatement {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.value.to_string())
+    }
+}
+
+#[derive(Clone)]
+pub enum Expression {
+    Identifier(Identifier),
+    IntegerLiteral(IntegerLiteral),
+}
+
+impl Display for Expression {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Statement::LetStatement { name, value: _ } => Some(name.clone()),
-            Statement::ReturnStatement { value: _ } => None,
+            Expression::Identifier(id) => write!(f, "{}", id.to_string()),
+            Expression::IntegerLiteral(literal) => write!(f, "{}", literal.to_string()),
         }
     }
 }
@@ -37,19 +111,19 @@ pub struct Identifier {
     pub value: String,
 }
 
-#[derive(Clone)]
-pub enum Expression {
-    PrefixExpression,
-    InfixExpression,
-    PostfixExpression,
+impl Display for Identifier {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.value)
+    }
 }
 
-impl Expression {
-    pub fn to_string(&self) -> String {
-        match self {
-            Expression::PrefixExpression => format!("Prefix"),
-            Expression::InfixExpression => format!("Infix"),
-            Expression::PostfixExpression => format!("Postfix"),
-        }
+#[derive(Clone)]
+pub struct IntegerLiteral {
+    pub value: usize,
+}
+
+impl Display for IntegerLiteral {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.value)
     }
 }
