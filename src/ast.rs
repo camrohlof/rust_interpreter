@@ -95,6 +95,8 @@ impl Display for ExpressionStatement {
 pub enum Expression {
     Identifier(Identifier),
     IntegerLiteral(IntegerLiteral),
+    PrefixExpression(Box<PrefixExpression>),
+    InfixExpression(Box<InfixExpression>),
 }
 
 impl Display for Expression {
@@ -102,6 +104,8 @@ impl Display for Expression {
         match self {
             Expression::Identifier(id) => write!(f, "{}", id.to_string()),
             Expression::IntegerLiteral(literal) => write!(f, "{}", literal.to_string()),
+            Expression::PrefixExpression(_pre) => todo!(),
+            Expression::InfixExpression(_) => todo!(),
         }
     }
 }
@@ -126,4 +130,19 @@ impl Display for IntegerLiteral {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.value)
     }
+}
+
+#[derive(Clone)]
+pub struct PrefixExpression {
+    pub token: Token,
+    pub operator: String,
+    pub right: Expression,
+}
+
+#[derive(Clone)]
+pub struct InfixExpression {
+    pub token: Token,
+    pub left: Expression,
+    pub operator: String,
+    pub right: Expression,
 }
