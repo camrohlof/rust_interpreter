@@ -7,7 +7,7 @@ use crate::{
     token::Token,
 };
 
-#[derive(PartialEq, PartialOrd)]
+#[derive(PartialEq, PartialOrd, Debug)]
 enum Precedence {
     Lowest = 1,
     Equals,
@@ -83,13 +83,10 @@ impl Parser {
     pub fn parse_program(&mut self) -> Program {
         let mut p = Program { statements: vec![] };
         while self.curr_token != None {
-            match self.parse_statement() {
-                Some(stmt) => p.statements.push(stmt),
-                None => {
-                    println!("{}", self.curr_token.clone().expect("errr").to_string());
-                    break;
-                }
+            if let Some(stmt) = self.parse_statement() {
+                p.statements.push(stmt);
             }
+            self.next_token();
         }
         return p;
     }
@@ -108,7 +105,7 @@ impl Parser {
             return None;
         }
         let name = Identifier {
-            value: self.curr_token.take().unwrap().to_string(),
+            value: self.curr_token.clone()?.to_string(),
         };
         if !self.expect_peek(Token::ASSIGN) {
             return None;
@@ -116,7 +113,6 @@ impl Parser {
         while self.curr_token != Some(Token::SEMICOLON) {
             self.next_token();
         }
-        self.next_token();
         return Some(Statement::LetStatement(LetStatement {
             token: Token::LET,
             name,
@@ -147,20 +143,24 @@ impl Parser {
     }
 
     fn parse_expression(&mut self, precedence: Precedence) -> Option<Expression> {
-        println!("{}", self.curr_token.clone()?);
         let mut leftexp = match self.curr_token.clone()? {
             Token::IDENT(_) => self.parse_identifier(),
             Token::INT(_) => self.parse_integer_literal(),
             Token::BANG | Token::MINUS => self.parse_prefix_expression(),
-            _ => return None,
+            _ => None,
         };
-
-        while self.peek_token.clone()? != Token::SEMICOLON
+        while self
+            .peek_token
+            .clone()
+            .is_some_and(|x| x != Token::SEMICOLON)
             && precedence < Precedence::from(&self.peek_token.clone()?)
         {
+            println!("inside loop");
             if self.infix_ops.contains(&self.peek_token.clone()?) {
                 self.next_token();
+                dbg!(&leftexp);
                 leftexp = self.parse_infix_expression(leftexp?);
+                dbg!(&leftexp);
             } else {
                 return leftexp;
             };
@@ -168,25 +168,29 @@ impl Parser {
         return leftexp;
     }
 
-    fn parse_identifier(&self) -> Option<Expression> {
-        println!("{}", self.curr_token.clone()?);
-        Some(Expression::Identifier(Identifier {
+    fn parse_identifier(&mut self) -> Option<Expression> {
+        println!("parse ident");
+        let exp = Some(Expression::Identifier(Identifier {
             value: self.curr_token.clone()?.to_string(),
-        }))
+        }));
+        return exp;
     }
 
     fn parse_integer_literal(&self) -> Option<Expression> {
-        let val = self.curr_token.clone()?.to_literal();
+        println!("parse literal");
+        let val = self.curr_token.clone()?.to_string();
         if let Ok(lit) = val.parse::<usize>() {
             Some(Expression::IntegerLiteral(IntegerLiteral { value: lit }))
         } else {
+            println!("failed to parse int");
             None
         }
     }
 
     fn parse_prefix_expression(&mut self) -> Option<Expression> {
+        println!("parse prefix");
         let token = self.curr_token.clone()?;
-        let operator = token.to_literal();
+        let operator = token.to_string();
 
         self.next_token();
 
@@ -198,16 +202,21 @@ impl Parser {
     }
 
     fn parse_infix_expression(&mut self, left: Expression) -> Option<Expression> {
+        println!("parse infix");
         let token = self.curr_token.clone()?;
-        let operator = token.to_literal();
+        dbg!(&token);
+        let operator = token.to_string();
+        dbg!(&operator);
         let precedence = Precedence::from(&token);
+        dbg!(&precedence);
         self.next_token();
-        let right = self.parse_expression(precedence)?;
+        let right = self.parse_expression(precedence);
+        dbg!(&right);
         Some(Expression::InfixExpression(Box::new(InfixExpression {
             token,
             left,
             operator,
-            right,
+            right: right?,
         })))
     }
 }
@@ -230,7 +239,6 @@ let foobar = 838383;";
         let stmt = &program.statements[index];
         let test = &tests[index];
 
-        assert_eq!(stmt.token_literal(), "let");
         match stmt {
             Statement::LetStatement(ls) => assert_eq!(ls.name.to_string(), test.to_string()),
             _ => assert!(false),
@@ -409,5 +417,52 @@ fn test_parsing_infix_expressions() {
             },
             _ => assert!(false),
         }
+    }
+}
+
+struct OpTestData {
+    input: String,
+    expected: String,
+}
+
+#[test]
+fn test_operator_precedence_parsing() {
+    let tests = vec![
+        OpTestData {
+            input: String::from("-a * b"),
+            expected: String::from("((-a) * b)"),
+        },
+        OpTestData {
+            input: String::from("!-a"),
+            expected: String::from("(!(-a))"),
+        },
+        OpTestData {
+            input: String::from("a + b + c"),
+            expected: String::from("((a + b) + c)"),
+        },
+        OpTestData {
+            input: String::from("a + b - c"),
+            expected: String::from("((a + b) - c)"),
+        },
+        OpTestData {
+            input: String::from("a * b * c"),
+            expected: String::from("((a * b) * c)"),
+        },
+        OpTestData {
+            input: String::from("a * b / c"),
+            expected: String::from("((a * b) / c)"),
+        },
+        OpTestData {
+            input: String::from("a + b / c"),
+            expected: String::from("(a + (b / c))"),
+        },
+    ];
+    for case in tests {
+        let lexer = Lexer::new(&case.input);
+        let mut parser = Parser::new(lexer);
+        let program = parser.parse_program();
+
+        let actual = program.to_string();
+        assert_eq!(actual, case.expected);
     }
 }

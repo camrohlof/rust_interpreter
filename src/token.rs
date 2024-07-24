@@ -34,44 +34,6 @@ pub enum Token {
 impl fmt::Display for Token {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         let out = match self {
-            Token::ILLEGAL => "Illegal: {}",
-            Token::EOF => "End of File: {}",
-            Token::IDENT(name) => name,
-            Token::INT(number) => &format!("Int: {}", number),
-            Token::ASSIGN => "Assign: {}",
-            Token::PLUS => "Plus: {}",
-            Token::MINUS => "Minus: {}",
-            Token::BANG => "Bang: {}",
-            Token::ASTERISK => "Asterisk: {}",
-            Token::SLASH => "Slash: {}",
-            Token::COMMA => "Comma: {}",
-            Token::SEMICOLON => "Semicolon: {}",
-            Token::LPAREN => "LParen: {}",
-            Token::RPAREN => "RParen: {}",
-            Token::LBRACE => "LBrace: {}",
-            Token::RBRACE => "RBrace: {}",
-            Token::FUNCTION => "Function: {}",
-            Token::LET => "Let: {}",
-            Token::LT => "LessThan: {}",
-            Token::GT => "GreaterThan: {}",
-            Token::RETURN => "Return: {}",
-            Token::IF => "If: {}",
-            Token::EQ => "EQ: {}",
-            Token::NOTEQ => "Not EQ: {}",
-            Token::FALSE => "FALSE",
-            Token::TRUE => "TRUE",
-            Token::ELSE => "Else: {}",
-        };
-
-        fmt.write_str(out)?;
-
-        Ok(())
-    }
-}
-
-impl Token {
-    pub fn to_literal(&self) -> String {
-        let out = match self {
             Token::ILLEGAL => "Illegal",
             Token::EOF => "",
             Token::IDENT(name) => name,
@@ -100,7 +62,7 @@ impl Token {
             Token::TRUE => "true",
             Token::ELSE => "else",
         };
-        return out.to_string();
+        write!(fmt, "{}", out)
     }
 }
 

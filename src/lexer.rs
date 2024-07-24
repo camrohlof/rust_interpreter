@@ -1,5 +1,6 @@
 use crate::token::{lookup_ident, Token};
 
+#[derive(Debug)]
 pub struct Lexer {
     input: Vec<char>,
     position: usize,
@@ -230,6 +231,6 @@ if (5 < 10) { \
         let token = lexer.next_token();
 
         assert_eq!(test.0, token);
-        assert_eq!(test.1, token.to_literal());
+        assert_eq!(test.1, token.to_string());
     }
 }

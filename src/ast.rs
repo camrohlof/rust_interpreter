@@ -18,30 +18,25 @@ impl Display for Program {
     }
 }
 
+#[derive(Clone, Debug)]
 pub enum Statement {
     LetStatement(LetStatement),
     ReturnStatement(ReturnStatement),
     ExpressionStatement(ExpressionStatement),
 }
 
-impl Statement {
-    pub fn token_literal(&self) -> String {
-        match self {
-            Statement::LetStatement(ls) => ls.token.to_literal(),
-            Statement::ReturnStatement(rs) => rs.token.to_literal(),
-            Statement::ExpressionStatement(es) => es.token.to_literal(),
-        }
-    }
-
-    pub fn to_string(&self) -> String {
-        match self {
+impl Display for Statement {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let out = match self {
             Statement::LetStatement(ls) => ls.to_string(),
             Statement::ReturnStatement(rs) => rs.to_string(),
             Statement::ExpressionStatement(es) => es.to_string(),
-        }
+        };
+        write!(f, "{}", out)
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct LetStatement {
     pub token: Token,
     pub name: Identifier,
@@ -57,13 +52,14 @@ impl Display for LetStatement {
         write!(
             f,
             "{} {} = {};",
-            self.token.to_literal(),
+            self.token.to_string(),
             self.name.to_string(),
             val
         )
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct ReturnStatement {
     pub token: Token,
     pub return_value: Option<Expression>,
@@ -71,15 +67,17 @@ pub struct ReturnStatement {
 
 impl Display for ReturnStatement {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{} {};",
-            self.token.to_literal(),
-            self.return_value.clone().unwrap().to_string(),
-        )
+        let return_val: String;
+        if let Some(exp) = self.return_value.clone() {
+            return_val = exp.to_string();
+        } else {
+            return_val = "".to_string();
+        }
+        write!(f, "{} {};", self.token.to_string(), return_val,)
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct ExpressionStatement {
     pub token: Token,
     pub value: Expression,
@@ -91,7 +89,7 @@ impl Display for ExpressionStatement {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum Expression {
     Identifier(Identifier),
     IntegerLiteral(IntegerLiteral),
@@ -104,13 +102,13 @@ impl Display for Expression {
         match self {
             Expression::Identifier(id) => write!(f, "{}", id.to_string()),
             Expression::IntegerLiteral(literal) => write!(f, "{}", literal.to_string()),
-            Expression::PrefixExpression(_pre) => todo!(),
-            Expression::InfixExpression(_) => todo!(),
+            Expression::PrefixExpression(pre) => write!(f, "{}", pre.to_string()),
+            Expression::InfixExpression(inf) => write!(f, "{}", inf.to_string()),
         }
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Identifier {
     pub value: String,
 }
@@ -121,7 +119,7 @@ impl Display for Identifier {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct IntegerLiteral {
     pub value: usize,
 }
@@ -132,17 +130,35 @@ impl Display for IntegerLiteral {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct PrefixExpression {
     pub token: Token,
     pub operator: String,
     pub right: Expression,
 }
 
-#[derive(Clone)]
+impl Display for PrefixExpression {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "({}{})", self.operator, self.right.to_string())
+    }
+}
+
+#[derive(Clone, Debug)]
 pub struct InfixExpression {
     pub token: Token,
     pub left: Expression,
     pub operator: String,
     pub right: Expression,
+}
+
+impl Display for InfixExpression {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "({} {} {})",
+            self.left.to_string(),
+            self.operator,
+            self.right.to_string()
+        )
+    }
 }
